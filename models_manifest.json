@@ -1,0 +1,69 @@
+{
+  "workflow": "indextts_2_5",
+  "notes": [
+    "默认下载 IndexTeam/IndexTTS-2.5 → VOLUME_ROOT/checkpoints",
+    "MODEL_VERSION=2 时下载 IndexTeam/IndexTTS-2",
+    "facebook/w2v-bert-2.0 写入 VOLUME_ROOT/huggingface-cache（首次推理也会拉）"
+  ],
+  "models": [
+    {
+      "filename": "config.yaml",
+      "relative_path": "checkpoints",
+      "url": "https://huggingface.co/IndexTeam/IndexTTS-2.5/resolve/main/config.yaml",
+      "bytes": 2860,
+      "required": true
+    },
+    {
+      "filename": "gpt.pth",
+      "relative_path": "checkpoints",
+      "url": "https://huggingface.co/IndexTeam/IndexTTS-2.5/resolve/main/gpt.pth",
+      "bytes": 3259599833,
+      "required": true
+    },
+    {
+      "filename": "s2mel.pth",
+      "relative_path": "checkpoints",
+      "url": "https://huggingface.co/IndexTeam/IndexTTS-2.5/resolve/main/s2mel.pth",
+      "bytes": 414908601,
+      "required": true
+    },
+    {
+      "filename": "codec.pth",
+      "relative_path": "checkpoints",
+      "url": "https://huggingface.co/IndexTeam/IndexTTS-2.5/resolve/main/codec.pth",
+      "bytes": 607290935,
+      "required": true
+    },
+    {
+      "filename": "feat1.pt",
+      "relative_path": "checkpoints",
+      "url": "https://huggingface.co/IndexTeam/IndexTTS-2.5/resolve/main/feat1.pt",
+      "bytes": 57170,
+      "required": true
+    },
+    {
+      "filename": "feat2.pt",
+      "relative_path": "checkpoints",
+      "url": "https://huggingface.co/IndexTeam/IndexTTS-2.5/resolve/main/feat2.pt",
+      "bytes": 374866,
+      "required": true
+    },
+    {
+      "filename": "wav2vec2bert_stats.pt",
+      "relative_path": "checkpoints",
+      "url": "https://huggingface.co/IndexTeam/IndexTTS-2.5/resolve/main/wav2vec2bert_stats.pt",
+      "bytes": 9343,
+      "required": true
+    },
+    {
+      "filename": "multilingual_zh_ja_yue_char_del.tiktoken",
+      "relative_path": "checkpoints",
+      "url": "https://huggingface.co/IndexTeam/IndexTTS-2.5/resolve/main/multilingual_zh_ja_yue_char_del.tiktoken",
+      "bytes": 907395,
+      "required": true
+    }
+  ],
+  "required_dirs": [
+    "checkpoints/qwen0.6bemo4-merge"
+  ]
+}

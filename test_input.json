@@ -1,0 +1,12 @@
+{
+  "input": {
+    "text": "大家好，欢迎使用 IndexTTS 语音合成。",
+    "lang": "ZH",
+    "spk_audio": "<paste data:audio/wav;base64,... or use build_request.py>",
+    "duration_factor": 1.0
+  },
+  "policy": {
+    "executionTimeout": 1800000,
+    "ttl": 3600000
+  }
+}

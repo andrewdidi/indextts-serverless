@@ -1,0 +1,6 @@
+# Serverless 运行时额外依赖（index-tts 本体由镜像内 uv sync 安装）
+runpod>=1.7.0
+huggingface_hub[hf_transfer]>=0.26.0
+hf_transfer>=0.1.8
+soundfile>=0.12.1
+numpy>=1.24

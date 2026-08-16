@@ -1,0 +1,10 @@
+.git/
+output/
+__pycache__/
+*.pyc
+.DS_Store
+.venv/
+request.json
+*.wav
+*.mp3
+config.json
