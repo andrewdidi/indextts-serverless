@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import base64
+import binascii
 import re
 import urllib.parse
 import urllib.request
@@ -11,28 +12,110 @@ from pathlib import Path
 from typing import Any
 
 
-_DATA_URI_RE = re.compile(r"^data:([^;,]+)?(;base64)?,(.*)$", re.I | re.S)
+_DATA_URI_RE = re.compile(r"^data:([^;,]+)?((?:;[^,]*)*),(.*)$", re.I | re.S)
+_PLACEHOLDER_RE = re.compile(r"^(<|placeholder|paste |xxx|\.\.\.|null|none)", re.I)
+
+
+def _b64decode_padded(s: str) -> bytes:
+    """容错 base64：去空白、urlsafe、自动补 padding。"""
+    t = (s or "").strip()
+    if not t:
+        raise ValueError("base64 为空")
+    # 常见前缀噪音
+    if t.lower().startswith("base64,"):
+        t = t.split(",", 1)[1]
+    t = "".join(t.split())  # 去换行/空格
+    # urlsafe → 标准
+    if "-" in t or "_" in t:
+        t = t.replace("-", "+").replace("_", "/")
+    # 去掉非法字符（保留 A-Za-z0-9+/=）
+    t = re.sub(r"[^A-Za-z0-9+/=]", "", t)
+    pad = (-len(t)) % 4
+    if pad:
+        t += "=" * pad
+    try:
+        return base64.b64decode(t, validate=False)
+    except binascii.Error:
+        # 再试：截断到 4 的倍数
+        t2 = t.rstrip("=")
+        t2 = t2[: len(t2) - (len(t2) % 4)]
+        if not t2:
+            raise
+        return base64.b64decode(t2 + "=" * ((-len(t2)) % 4), validate=False)
+
+
+def _looks_like_audio(blob: bytes) -> bool:
+    if len(blob) < 12:
+        return False
+    if blob[:4] == b"RIFF" and blob[8:12] == b"WAVE":
+        return True
+    if blob[:3] == b"ID3" or blob[:2] == b"\xff\xfb" or blob[:2] == b"\xff\xf3":
+        return True  # mp3
+    if blob[:4] == b"fLaC" or blob[:4] == b"OggS":
+        return True
+    if blob[:4] == b"ftyp" or blob[4:8] == b"ftyp":
+        return True  # m4a
+    # 未知容器但足够大，仍接受（交给下游 ffmpeg/librosa）
+    return len(blob) >= 256
 
 
 def _decode_audio_blob(raw: str, dest: Path) -> Path:
     raw = (raw or "").strip()
     if not raw:
         raise ValueError("音频为空")
+    if _PLACEHOLDER_RE.match(raw) or "build_request" in raw or "paste data:" in raw.lower():
+        raise ValueError(
+            "spk_audio 仍是占位符。请用真实 wav/mp3 的 base64 或 data URI："
+            "python3 build_request.py --spk ./voice.wav --text '你好' --out request.json"
+        )
+
     m = _DATA_URI_RE.match(raw)
     if m:
+        meta = (m.group(2) or "").lower()
         payload = m.group(3)
-        is_b64 = bool(m.group(2))
-        if is_b64:
-            dest.write_bytes(base64.b64decode(payload))
+        if "base64" in meta or _looks_like_b64(payload):
+            blob = _b64decode_padded(payload)
         else:
-            dest.write_bytes(urllib.parse.unquote_to_bytes(payload))
+            blob = urllib.parse.unquote_to_bytes(payload)
+        if not _looks_like_audio(blob):
+            # data URI 解码后不像音频时再试一次纯 base64
+            try:
+                alt = _b64decode_padded(payload)
+                if _looks_like_audio(alt):
+                    blob = alt
+            except Exception:
+                pass
+        dest.write_bytes(blob)
         return dest
-    # 纯 base64
+
+    # 纯 base64 / 偶发带 data: 但格式奇怪
+    if raw.lower().startswith("data:") and "," in raw:
+        payload = raw.split(",", 1)[1]
+        blob = _b64decode_padded(payload)
+        dest.write_bytes(blob)
+        return dest
+
     try:
-        dest.write_bytes(base64.b64decode(raw, validate=False))
-        return dest
+        blob = _b64decode_padded(raw)
     except Exception as e:
-        raise ValueError(f"无法解码音频 base64: {e}") from e
+        raise ValueError(
+            f"无法解码音频 base64: {e}。"
+            "请确认 spk_audio 是完整 base64（勿截断），或使用 data:audio/wav;base64,..."
+        ) from e
+    if not _looks_like_audio(blob):
+        raise ValueError(
+            f"解码后不像音频文件（{len(blob)} bytes）。"
+            "请用 build_request.py 重新编码，或传 spk_audio_url 指向可下载的 wav。"
+        )
+    dest.write_bytes(blob)
+    return dest
+
+
+def _looks_like_b64(s: str) -> bool:
+    sample = "".join((s or "")[:80].split())
+    if len(sample) < 16:
+        return False
+    return bool(re.fullmatch(r"[A-Za-z0-9+/=_-]+", sample))
 
 
 def _download(url: str, dest: Path) -> Path:
@@ -46,6 +129,15 @@ def _write_audio_field(value: Any, dest: Path) -> Path:
     if value is None:
         raise ValueError("缺少参考音频")
     if isinstance(value, (bytes, bytearray)):
+        dest.write_bytes(bytes(value))
+        return dest
+    # RunPod / 部分客户端可能包一层 dict
+    if isinstance(value, dict):
+        inner = value.get("data") or value.get("audio") or value.get("base64") or value.get("content")
+        if inner is None:
+            raise ValueError("音频 dict 缺少 data/audio/base64 字段")
+        return _write_audio_field(inner, dest)
+    if isinstance(value, list) and value and all(isinstance(x, int) for x in value[:32]):
         dest.write_bytes(bytes(value))
         return dest
     if not isinstance(value, str):
@@ -93,7 +185,7 @@ def normalize_input(job: dict[str, Any], work_dir: Path) -> dict[str, Any]:
     elif lang in {"ENGLISH"}:
         lang = "EN"
 
-    out = {
+    return {
         "text": text,
         "spk_audio_path": str(spk_path),
         "emo_audio_path": emo_path,
@@ -106,4 +198,3 @@ def normalize_input(job: dict[str, Any], work_dir: Path) -> dict[str, Any]:
         "lang": lang,
         "verbose": bool(job.get("verbose", False)),
     }
-    return out

@@ -1,8 +1,9 @@
 {
+  "_comment": "勿直接用本文件测；先 build_request.py 生成完整 request.json。spk_audio 必须是完整 base64 或 https URL。",
   "input": {
     "text": "大家好，欢迎使用 IndexTTS 语音合成。",
     "lang": "ZH",
-    "spk_audio": "<paste data:audio/wav;base64,... or use build_request.py>",
+    "spk_audio_url": "https://example.com/replace-with-real-voice.wav",
     "duration_factor": 1.0
   },
   "policy": {
