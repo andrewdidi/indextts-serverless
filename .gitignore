@@ -8,3 +8,5 @@ request.json
 *.wav
 *.mp3
 config.json
+
+._\*

@@ -37,13 +37,15 @@ RUN git clone --depth 1 https://github.com/index-tts/index-tts.git /opt/index-tt
  && uv sync --python 3.11 \
  && /opt/index-tts/.venv/bin/python -c "import torch; print('torch', torch.__version__, 'cuda', torch.cuda.is_available())"
 
-ENV PATH="/opt/index-tts/.venv/bin:${PATH}" \
-    PYTHONPATH="/opt/index-tts:${PYTHONPATH}" \
+ENV PATH="/opt/index-tts/.venv/bin:/root/.local/bin:${PATH}" \
+    PYTHONPATH="/opt/index-tts" \
     VIRTUAL_ENV=/opt/index-tts/.venv
 
 WORKDIR /app
 COPY requirements.txt /app/requirements.txt
-RUN /opt/index-tts/.venv/bin/pip install --no-cache-dir -r /app/requirements.txt
+# uv 创建的 venv 默认无 pip，用 uv pip 往同一环境装 serverless 依赖
+RUN uv pip install --python /opt/index-tts/.venv/bin/python --no-cache -r /app/requirements.txt \
+ && /opt/index-tts/.venv/bin/python -c "import runpod, huggingface_hub; print('serverless deps ok')"
 
 COPY handler.py engine.py input_normalize.py rp_handler.py /app/
 COPY download_models.py verify_models.py models_manifest.json /app/
