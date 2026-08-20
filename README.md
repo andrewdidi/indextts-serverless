@@ -31,7 +31,8 @@ python3 run_ui.py
 | `REQUIRE_MODELS` | `1` | 缺模型 fail-fast |
 | `TURBO` | `1` | 极速模式（对齐 センセイAgent）：beams=1、动态 mel、短分段 |
 | `USE_BF16` | `1` | 2.5 半精度 |
-| `USE_FP16` / `USE_CUDA_KERNEL` | `1` | CUDA 加速（turbo 开启时） |
+| `USE_FP16` | `1` | 半精度加速（turbo） |
+| `USE_CUDA_KERNEL` | `0` | BigVGAN 自定义核；slim runtime 无 nvcc，保持 0（否则会 fallback） |
 | `USE_QWEN_EMO` | `0` | 文本情感；需要时设 `1` 并 Redeploy |
 | `HF_TOKEN` | — | 填盘下载用 |
 

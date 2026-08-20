@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """IndexTTS 极速推理参数（对齐 センセイAgent / sensei_subtitle.core.indextts_turbo）。
 
-CUDA Serverless 默认开启：beams=1、动态 max_mel、短分段、cuda_kernel。
+CUDA Serverless 默认开启：beams=1、动态 max_mel、短分段。
+BigVGAN 自定义 CUDA kernel 需 nvcc（devel 镜像）；slim runtime 默认关闭。
 可通过环境变量 TURBO=0 关闭，或请求体 turbo{} 覆盖单项。
 """
 
@@ -16,7 +17,7 @@ from typing import Any
 class IndexTurboConfig:
     enabled: bool = True
     use_fp16: bool = True
-    use_cuda_kernel: bool = True
+    use_cuda_kernel: bool = False
     use_accel: bool = False
     num_beams: int = 1
     do_sample: bool = False
@@ -68,7 +69,7 @@ def load_turbo_from_env() -> IndexTurboConfig:
     return IndexTurboConfig(
         enabled=_env_bool("TURBO", True),
         use_fp16=_env_bool("USE_FP16", True),
-        use_cuda_kernel=_env_bool("USE_CUDA_KERNEL", True),
+        use_cuda_kernel=_env_bool("USE_CUDA_KERNEL", False),
         use_accel=_env_bool("USE_ACCEL", False),
         num_beams=_env_int("TURBO_NUM_BEAMS", 1, minimum=1),
         do_sample=_env_bool("TURBO_DO_SAMPLE", False),

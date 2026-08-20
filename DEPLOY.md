@@ -15,11 +15,13 @@
    REQUIRE_MODELS=1
    MODEL_VERSION=2.5
    TURBO=1
-   USE_CUDA_KERNEL=1
    USE_FP16=1
+   USE_CUDA_KERNEL=0
    USE_QWEN_EMO=0
    ```
 5. 日志：`Volume 模型已齐全 → 跳过下载` / `model loaded`（含 `turbo.enabled=true`）
+   - `GPT2InferenceModel … GenerationMixin`：transformers 上游警告，可忽略
+   - `Failed to load custom CUDA kernel … Falling back to torch`：slim 镜像无 nvcc，保持 `USE_CUDA_KERNEL=0` 即可避免
 
 ## 步骤
 
