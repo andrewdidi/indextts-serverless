@@ -139,32 +139,37 @@ def get_tts() -> Any:
         else:
             from indextts.infer_v2_5 import IndexTTS2
 
+            # 必须显式传 use_cuda_kernel=False：上游默认 (None → True on CUDA)，
+            # slim runtime 无 nvcc，不传会每次冷启动尝试编译并打印 Falling back。
             kwargs = {
                 "cfg_path": str(cfg),
                 "model_dir": str(ckpt),
                 "use_bf16": use_bf16,
+                "use_fp16": use_fp16,
+                "use_cuda_kernel": use_cuda_kernel,
+                "use_deepspeed": use_deepspeed,
+                "use_qwen_emo": use_qwen_emo,
             }
-            # 2.5 也尝试传入 fp16/cuda_kernel（上游若支持则加速）
-            for k, v in (
-                ("use_fp16", use_fp16),
-                ("use_cuda_kernel", use_cuda_kernel),
-                ("use_accel", use_accel),
-                ("use_deepspeed", use_deepspeed),
-            ):
-                if v:
-                    kwargs[k] = v
+            if use_accel:
+                kwargs["use_accel"] = True
             try:
-                _TTS = IndexTTS2(**kwargs, use_qwen_emo=use_qwen_emo)
+                _TTS = IndexTTS2(**kwargs)
             except TypeError:
-                try:
+                # 逐级剥离可选参数，兼容不同上游签名
+                for drop in ("use_accel", "use_deepspeed", "use_fp16", "use_qwen_emo"):
+                    kwargs.pop(drop, None)
+                    try:
+                        _TTS = IndexTTS2(**kwargs)
+                        break
+                    except TypeError:
+                        continue
+                else:
                     _TTS = IndexTTS2(
                         cfg_path=str(cfg),
                         model_dir=str(ckpt),
                         use_bf16=use_bf16,
-                        use_qwen_emo=use_qwen_emo,
+                        use_cuda_kernel=use_cuda_kernel,
                     )
-                except TypeError:
-                    _TTS = IndexTTS2(cfg_path=str(cfg), model_dir=str(ckpt), use_bf16=use_bf16)
             _META = {
                 "version": "2.5",
                 "use_bf16": use_bf16,
