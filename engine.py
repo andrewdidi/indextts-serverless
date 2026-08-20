@@ -254,45 +254,47 @@ def synthesize(
 
     # Sensei turbo：beams=1 / 动态 mel / 短分段 …
     kwargs.update(synthesize_kwargs(turbo, text=text))
+    # 双保险：绝不把扩散参数漏进 GPT.generate（上游 2.5 常见坑）
+    if not _env_bool("TURBO_PASS_DIFFUSION", False):
+        kwargs.pop("diffusion_steps", None)
+        kwargs.pop("inference_cfg_rate", None)
 
     try:
         tts.infer(**kwargs)
-    except TypeError as e:
-        # 旧版 infer 不认部分 generation kwargs：剥离后再试一次
+    except (TypeError, ValueError) as e:
         msg = str(e)
-        drop = [
-            k
-            for k in (
-                "diffusion_steps",
-                "inference_cfg_rate",
-                "more_segment_before",
-                "max_text_tokens_per_segment",
-                "interval_silence",
-                "num_beams",
-                "do_sample",
-                "temperature",
-                "top_p",
-                "top_k",
-                "max_mel_tokens",
-                "repetition_penalty",
-                "length_penalty",
-                "text_lang",
-                "lang",
-                "duration_factor",
-            )
-            if k in kwargs and k in msg
-        ]
-        if not drop:
-            # 盲剥离 turbo 专有项再试
-            for k in (
-                "diffusion_steps",
-                "inference_cfg_rate",
-                "more_segment_before",
-            ):
+        # 旧版 / 未 pop 的 kwargs：剥离后再试
+        drop_candidates = (
+            "diffusion_steps",
+            "inference_cfg_rate",
+            "more_segment_before",
+            "max_text_tokens_per_segment",
+            "interval_silence",
+            "num_beams",
+            "do_sample",
+            "temperature",
+            "top_p",
+            "top_k",
+            "max_mel_tokens",
+            "repetition_penalty",
+            "length_penalty",
+            "text_lang",
+            "lang",
+            "duration_factor",
+        )
+        dropped = False
+        for k in drop_candidates:
+            if k in kwargs and (k in msg or "model_kwargs" in msg or "not used" in msg):
                 kwargs.pop(k, None)
-        else:
-            for k in drop:
-                kwargs.pop(k, None)
+                dropped = True
+        if not dropped:
+            for k in ("diffusion_steps", "inference_cfg_rate", "more_segment_before"):
+                if k in kwargs:
+                    kwargs.pop(k, None)
+                    dropped = True
+        if not dropped:
+            raise
+        print(f"[indextts] retry infer after stripping kwargs: {e}", flush=True)
         tts.infer(**kwargs)
 
     _META["turbo_last"] = turbo_summary(turbo)

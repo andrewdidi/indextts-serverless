@@ -145,13 +145,17 @@ def synthesize_kwargs(turbo: IndexTurboConfig, *, text: str = "") -> dict[str, A
     """
     传给 IndexTTS2.infer(**kwargs)。
     infer() 用 more_segment_before 位置映射到 quick_streaming_tokens，勿重复传后者。
+
+    注意：官方 index-tts 2.5 的 infer 未 pop diffusion_steps / inference_cfg_rate，
+    会漏进 GPT.generate 直接报错；故默认不传（扩散仍用上游默认 25 / 0.7）。
+    若镜像内已打 Sensei 式 pop 补丁，可设 TURBO_PASS_DIFFUSION=1。
     """
     if not turbo.enabled:
         return {}
     max_mel = turbo.max_mel_tokens
     if turbo.dynamic_mel_tokens and (text or "").strip():
         max_mel = dynamic_max_mel_tokens(text, turbo)
-    return {
+    kw: dict[str, Any] = {
         "num_beams": turbo.num_beams,
         "do_sample": turbo.do_sample,
         "temperature": turbo.temperature,
@@ -160,12 +164,15 @@ def synthesize_kwargs(turbo: IndexTurboConfig, *, text: str = "") -> dict[str, A
         "max_mel_tokens": max_mel,
         "repetition_penalty": turbo.repetition_penalty,
         "length_penalty": turbo.length_penalty,
-        "diffusion_steps": turbo.diffusion_steps,
-        "inference_cfg_rate": turbo.inference_cfg_rate,
         "max_text_tokens_per_segment": turbo.max_text_tokens_per_segment,
         "interval_silence": turbo.interval_silence,
         "more_segment_before": turbo.quick_streaming_tokens,
     }
+    if _env_bool("TURBO_PASS_DIFFUSION", False):
+        kw["diffusion_steps"] = turbo.diffusion_steps
+        kw["inference_cfg_rate"] = turbo.inference_cfg_rate
+    return kw
+
 
 
 def summary(turbo: IndexTurboConfig) -> dict[str, Any]:
