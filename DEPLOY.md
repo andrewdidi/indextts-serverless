@@ -14,8 +14,12 @@
    DOWNLOAD_MODELS_ON_START=0
    REQUIRE_MODELS=1
    MODEL_VERSION=2.5
+   TURBO=1
+   USE_CUDA_KERNEL=1
+   USE_FP16=1
+   USE_QWEN_EMO=0
    ```
-5. 日志：`Volume 模型已齐全 → 跳过下载` / `model loaded`
+5. 日志：`Volume 模型已齐全 → 跳过下载` / `model loaded`（含 `turbo.enabled=true`）
 
 ## 步骤
 
@@ -85,14 +89,17 @@ python3 send_request.py --request request.json --mode run --out-dir ./output
     "duration_factor": 1.0,
     "emo_audio": null,
     "emo_vector": null,
-    "use_emo_text": false
+    "use_emo_text": false,
+    "turbo": {"enabled": true}
   }
 }
 ```
 
-返回：`audio_base64` / `audio`（data URI）wav。
+返回：`audio_base64` / `audio`（data URI）wav；`model.turbo` 可见极速参数。
 
 ## 说明
 
+- **TURBO=1（默认）**：对齐 センセイAgent 极速——`num_beams=1`、动态 `max_mel_tokens`、短分段、`interval_silence=0`；同音色按内容哈希复用 spk 条件缓存。
 - `MODEL_VERSION=2` 可切 IndexTTS-2（填盘时用同一变量）。
 - 日常 Endpoint 务必 `DOWNLOAD_MODELS_ON_START=0`，避免冷启动拉模型超时。
+- `use_emo_text` 需 `USE_QWEN_EMO=1` 并 Redeploy。

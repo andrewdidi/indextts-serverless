@@ -17,9 +17,11 @@ ENV DEBIAN_FRONTEND=noninteractive \
     DOWNLOAD_MODELS_ON_START=0 \
     REQUIRE_MODELS=1 \
     USE_BF16=1 \
-    USE_FP16=0 \
-    USE_CUDA_KERNEL=0 \
-    USE_DEEPSPEED=0
+    USE_FP16=1 \
+    USE_CUDA_KERNEL=1 \
+    USE_DEEPSPEED=0 \
+    USE_QWEN_EMO=0 \
+    TURBO=1
 
 RUN apt-get update -qq && apt-get install -y -qq --no-install-recommends \
       ca-certificates curl git git-lfs ffmpeg build-essential \
@@ -47,7 +49,7 @@ COPY requirements.txt /app/requirements.txt
 RUN uv pip install --python /opt/index-tts/.venv/bin/python --no-cache -r /app/requirements.txt \
  && /opt/index-tts/.venv/bin/python -c "import runpod, huggingface_hub; print('serverless deps ok')"
 
-COPY handler.py engine.py input_normalize.py rp_handler.py /app/
+COPY handler.py engine.py input_normalize.py rp_handler.py turbo.py /app/
 COPY download_models.py verify_models.py models_manifest.json /app/
 COPY scripts/prepare_volume_models.sh scripts/download_to_volume.sh scripts/pod_fill_volume.sh /app/scripts/
 COPY start_worker.sh /app/start_worker.sh

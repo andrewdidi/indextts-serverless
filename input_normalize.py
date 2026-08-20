@@ -185,6 +185,10 @@ def normalize_input(job: dict[str, Any], work_dir: Path) -> dict[str, Any]:
     elif lang in {"ENGLISH"}:
         lang = "EN"
 
+    turbo = job.get("turbo")
+    if turbo is not None and not isinstance(turbo, dict):
+        raise ValueError("turbo 须为对象，例如 {\"enabled\": true, \"num_beams\": 1}")
+
     return {
         "text": text,
         "spk_audio_path": str(spk_path),
@@ -197,4 +201,5 @@ def normalize_input(job: dict[str, Any], work_dir: Path) -> dict[str, Any]:
         "use_random": bool(job.get("use_random", False)),
         "lang": lang,
         "verbose": bool(job.get("verbose", False)),
+        "turbo_overrides": turbo,
     }

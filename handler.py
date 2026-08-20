@@ -39,6 +39,7 @@ def handler(event: dict[str, Any]) -> dict[str, Any]:
             duration_factor=params.get("duration_factor", 1.0),
             use_random=params.get("use_random", False),
             verbose=params.get("verbose", False),
+            turbo_overrides=params.get("turbo_overrides"),
         )
         if not out_wav.is_file() or out_wav.stat().st_size < 44:
             raise RuntimeError("推理未生成有效 wav")

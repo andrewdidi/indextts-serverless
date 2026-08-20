@@ -29,8 +29,13 @@ python3 run_ui.py
 | `MODEL_VERSION` | `2.5` | `2.5` 或 `2` |
 | `DOWNLOAD_MODELS_ON_START` | `0` | Serverless 日常勿开 |
 | `REQUIRE_MODELS` | `1` | 缺模型 fail-fast |
+| `TURBO` | `1` | 极速模式（对齐 センセイAgent）：beams=1、动态 mel、短分段 |
 | `USE_BF16` | `1` | 2.5 半精度 |
+| `USE_FP16` / `USE_CUDA_KERNEL` | `1` | CUDA 加速（turbo 开启时） |
+| `USE_QWEN_EMO` | `0` | 文本情感；需要时设 `1` 并 Redeploy |
 | `HF_TOKEN` | — | 填盘下载用 |
+
+请求体可选覆盖：`"turbo": {"num_beams": 1, "diffusion_steps": 20}`。
 
 ## License
 
